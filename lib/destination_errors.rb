@@ -39,7 +39,7 @@ module DestinationErrors
     base.extend(ClassMethods)
     base.class_eval do
       attr_reader :errors
-      attr_reader :errors_finalized
+      attr_accessor :errors_finalized
       attr_accessor :surface_errors_on
       class_attribute :error_surfaces
     end
