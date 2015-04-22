@@ -81,9 +81,6 @@ module DestinationErrors
   module ClassMethods
     # Implementation hook
     def has_error_surfaces(value)
-      if value.length == 1 && value.first.nil?
-        warn "#{self}: error_surfaces might not be configured"
-      end
       self.error_surfaces = value
     end
 
