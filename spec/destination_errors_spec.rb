@@ -1,25 +1,24 @@
 RSpec.describe DestinationErrors do
-  let(:klass) { Class.new do
-      attr_accessor :surface1, :surface2
-      include DestinationErrors
-      def initialize(surface1 = nil, surface2 = nil)
-        @surface1 = surface1
-        @surface2 = surface2
-      end
-      def finalize
-        move_all_errors_to_destination
-      end
+  MyClass = Class.new do
+    attr_accessor :surface1, :surface2
+    include DestinationErrors
+    def initialize(surface1 = nil, surface2 = nil)
+      @surface1 = surface1
+      @surface2 = surface2
     end
-  }
-  let(:instance) { klass.new }
+    def finalize
+      move_all_errors_to_destination
+    end
+  end
+  let(:instance) { MyClass.new }
   context "works" do
-    it("is defined") { expect { klass }.to_not raise_error }
+    it("is defined") { expect { MyClass }.to_not raise_error }
     it("with intialize") { expect { instance }.to_not raise_error }
   end
   context "class_attributes" do
-    before { klass.error_surfaces = [nil] }
+    before { MyClass.error_surfaces = [nil] }
     it("reads and writes error_surfaces") {
-      expect(klass.error_surfaces).to eq [nil]
+      expect(MyClass.error_surfaces).to eq [nil]
     }
   end
   context "attr_readers" do
@@ -42,11 +41,11 @@ RSpec.describe DestinationErrors do
     context "error_destination" do
       it("defaults to self") { expect(instance.send(:error_destination)).to eq instance }
       context "custom" do
-        let(:surface1) { klass.new }
-        let(:surface2) { klass.new }
-        let(:instance) { klass.new(surface1, surface2) }
+        let(:surface1) { MyClass.new("asdf", "burgle") }
+        let(:surface2) { MyClass.new("qwer", "beagle") }
+        let(:instance) { MyClass.new(surface1, surface2) }
         before {
-          klass.error_surfaces = [nil, :surface1, :surface2]
+          MyClass.error_surfaces = [nil, :surface1, :surface2]
           instance.surface_errors_on = :surface1
           instance.errors.add(:base, "ON INSTANCE")
           instance.surface1.errors.add(:base, "ON SURFACE 1")

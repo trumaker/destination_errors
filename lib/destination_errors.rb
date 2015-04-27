@@ -113,13 +113,13 @@ module DestinationErrors
   end
 
   def move_errors_from_surface_to_destination_if_needed(surface)
-    if move_errors_from_surface?(surface)
+    if move_errors_from_surface?(surface) && error_destination
       (
         surface.nil? ?
-          errors.full_messages :
-          self.send(surface).errors.full_messages
-      ).each do |message|
-        move_error_to_destination(message)
+          errors.messages :
+          self.send(surface).errors.messages
+      ).each do |key, message|
+        move_error_to_destination(key, message)
       end
     end
   end
@@ -146,9 +146,11 @@ module DestinationErrors
     surface_errors_on.nil? || !self.send(surface_errors_on)
   end
 
-  def move_error_to_destination(message)
-    if error_destination
-      error_destination.errors.add(:base, message)
+  def move_error_to_destination(key, message)
+    if error_destination.respond_to?(key)
+      error_destination.errors.add(key, *message)
+    else
+      error_destination.errors.add(:base, *message)
     end
   end
 
