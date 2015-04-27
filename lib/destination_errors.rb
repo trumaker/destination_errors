@@ -118,8 +118,8 @@ module DestinationErrors
         surface.nil? ?
           errors.messages :
           self.send(surface).errors.messages
-      ).each do |key, message|
-        move_error_to_destination(key, message)
+      ).each do |key, message_array|
+        move_error_to_destination(key, message_array)
       end
     end
   end
@@ -146,11 +146,21 @@ module DestinationErrors
     surface_errors_on.nil? || !self.send(surface_errors_on)
   end
 
-  def move_error_to_destination(key, message)
+  def move_error_to_destination(key, message_array)
     if error_destination.respond_to?(key)
-      error_destination.errors.add(key, *message)
+      add_uniquely(key, message_array)
+    elsif key == :base
+      add_uniquely(:base, message_array)
     else
-      error_destination.errors.add(:base, *message)
+      add_uniquely(:base, message_array.map {|message| "#{key} #{message}"})
+    end
+  end
+
+  def add_uniquely(key, message_array)
+    message_array.each do |message|
+      unless error_destination.errors[key].include?(message)
+        error_destination.errors.add(key, message)
+      end
     end
   end
 
