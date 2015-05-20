@@ -1,4 +1,6 @@
 require "destination_errors/version"
+require "destination_errors/unique_errors"
+require "destination_errors/active_model_integration"
 
 #
 #   There are three steps to implementing this module in a class:
@@ -29,16 +31,14 @@ require "destination_errors/version"
 #     end
 #
 
-require "active_model"
-
 module DestinationErrors
 
   def self.included(base)
-    base.include(ActiveModel::Validations)
     base.prepend(Initializer)
     base.extend(ClassMethods)
+    base.include(DestinationErrors::ActiveModelIntegration)
+    base.include(DestinationErrors::UniqueErrors)
     base.class_eval do
-      attr_reader :errors
       attr_accessor :errors_finalized
       attr_accessor :surface_errors_on
       class_attribute :error_surfaces
@@ -47,7 +47,6 @@ module DestinationErrors
 
   module Initializer
     def initialize(*args)
-      @errors = ActiveModel::Errors.new(self)
       @surface_errors_on = nil
       super
     end
@@ -66,11 +65,6 @@ module DestinationErrors
     return true
   end
 
-  # Required for ActiveModel::Validations
-  def read_attribute_for_validation(attr)
-    send(attr)
-  end
-
   # dynamically access the surface where errors are being aggregated
   def error_destination
     @error_destination = error_destination_is_self? ?
@@ -82,16 +76,6 @@ module DestinationErrors
     # Implementation hook
     def has_error_surfaces(value)
       self.error_surfaces = value
-    end
-
-    # Required for ActiveModel::Validations
-    def human_attribute_name(attr, options = {})
-      attr
-    end
-
-    # Required for ActiveModel::Validations
-    def lookup_ancestors
-      [self]
     end
   end
 
@@ -119,7 +103,7 @@ module DestinationErrors
           errors.messages :
           self.send(surface).errors.messages
       ).each do |key, message_array|
-        move_error_to_destination(key, message_array)
+        move_error_to_destination(key, *message_array)
       end
     end
   end
@@ -146,21 +130,13 @@ module DestinationErrors
     surface_errors_on.nil? || !self.send(surface_errors_on)
   end
 
-  def move_error_to_destination(key, message_array)
+  def move_error_to_destination(key, *message_array)
     if error_destination.respond_to?(key)
-      add_uniquely(key, message_array)
+      add_errors_uniquely(key, *message_array)
     elsif key == :base
-      add_uniquely(:base, message_array)
+      add_errors_uniquely(:base, *message_array)
     else
-      add_uniquely(:base, message_array.map {|message| "#{key} #{message}"})
-    end
-  end
-
-  def add_uniquely(key, message_array)
-    message_array.each do |message|
-      unless error_destination.errors[key].include?(message)
-        error_destination.errors.add(key, message)
-      end
+      add_errors_uniquely(:base, *message_array.map {|message| "#{key} #{message}"})
     end
   end
 
